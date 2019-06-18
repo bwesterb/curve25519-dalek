@@ -270,6 +270,47 @@ impl FieldElement {
     pub fn invsqrt(&self) -> (Choice, FieldElement) {
         FieldElement::sqrt_ratio_i(&FieldElement::one(), self)
     }
+
+    /// Same as invsqrt, but does not flip signs if the root computed with
+    /// exponentiation is negative.  Helpful in some computations.
+    pub fn invsqrt_hom(&self) -> (Choice, FieldElement) {
+        let self2 = self.square();
+        let self3 = &self2 * &self; 
+        let self4 = self2.square();
+        let self6 = &self2 * &self4;
+        let self7 = &self6 * &self; 
+        let t = &self7.pow_p58() * &self3;
+
+        // case       A           B            C             D
+        // ---------------------------------------------------------------
+        // t          1/sqrt(a)   -i/sqrt(a)   1/sqrt(i*a)   -i/sqrt(i*a)
+        // chk        1           -1           -i            i
+        // corr       1           i            1             i
+        // ret        1           1            0             0
+
+        let chk = &t.square() * &self;
+
+        let in_case_a = chk.ct_eq(&FieldElement::one());
+        let in_case_b = chk.ct_eq(&(-&FieldElement::one()));
+        let in_case_d = chk.ct_eq(&constants::SQRT_M1);
+
+        let mut corr = FieldElement::one();
+        corr.conditional_assign(&constants::SQRT_M1, in_case_b | in_case_d);
+        let ret = &t * &corr;
+
+        (in_case_a | in_case_b, ret)
+    }
+
+    /// Computes the positive square root of self in constant time
+    ///
+    /// Assumes self is a square.
+    pub fn sqrt(&self) -> FieldElement {
+        let (_, invsqrt) = self.invsqrt();
+        let mut some_root = &invsqrt * &self;
+        let is_negative = some_root.is_negative();
+        some_root.conditional_negate(is_negative);
+        some_root
+    }
 }
 
 #[cfg(test)]

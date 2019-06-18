@@ -127,6 +127,8 @@ use core::ops::{Add, Neg, Sub};
 
 use subtle::Choice;
 use subtle::ConditionallySelectable;
+use subtle::ConstantTimeEq;
+use subtle::ConditionallyNegatable;
 
 use constants;
 
@@ -165,6 +167,17 @@ pub struct CompletedPoint {
     pub X: FieldElement,
     pub Y: FieldElement,
     pub Z: FieldElement,
+    pub T: FieldElement,
+}
+
+// XXX this is the wrong place to define JacobiPoint and its elligator_inv.  We should move it.
+
+/// Represents a point (s,t) on the the Jacobi quartic associated
+/// to the Edwards curve.
+#[derive(Copy, Clone)]
+#[allow(missing_docs)]
+pub struct JacobiPoint {
+    pub S: FieldElement,
     pub T: FieldElement,
 }
 
@@ -347,6 +360,56 @@ impl CompletedPoint {
     }
 }
 
+impl JacobiPoint {
+    /// Elligator2 is defined in two steps: first a field element is converted
+    /// to a point (s,t) on the Jacobi quartic associated to the Edwards curve.
+    /// Then this point is mapped to a point on the Edwards curve.
+    /// This function computes a field element that is mapped to a given (s,t)
+    /// with Elligator2 if it exists.
+    pub(crate) fn elligator_inv(&self) -> (Choice, FieldElement) {
+        let mut out = FieldElement::zero();
+
+        // sqrt(i * d).  XXX add constant
+        let sqrt_id = &(&constants::SQRT_M1 * &constants::EDWARDS_D).sqrt();
+
+        // (d+1)/(d-1).  XXX add constant
+        let dp1_over_dm1 = &(&constants::EDWARDS_D - &FieldElement::one()).invert()
+                                * &(&constants::EDWARDS_D + &FieldElement::one());
+
+        // Special case: s = 0.  If s is zero, either t = 1 or t = -1.
+        // If t=1, then sqrt(i*d) is the preimage.  Otherwise it's 0.
+        let s_is_zero = self.S.is_zero();
+        let t_equals_one = self.T.ct_eq(&FieldElement::one());
+        out.conditional_assign(&sqrt_id, t_equals_one);
+        let mut ret = s_is_zero;
+        let mut done = s_is_zero;
+        
+        // a := (t+1) (d+1)/(d-1)
+        let a = &(&self.T + &FieldElement::one()) * &dp1_over_dm1;
+        let a2 = a.square();
+
+        // y := 1/sqrt(i (s^4 - a^2)).
+        let s2 = self.S.square();
+        let s4 = s2.square();
+        let invSqiY = &s4 - &a2;
+
+        // There is no preimage if the square root of i*(s^4-a^2) does not exist.
+        let (sq, y) = invSqiY.invsqrt_hom();
+        ret |= !sq;
+        done |= sq;
+
+        // x := (a + sign(s)*s^2) y
+        let mut pms2 = s2;
+        pms2.conditional_negate(self.S.is_negative());
+        let mut x = &(&a + &pms2) * &y;
+        let x_is_negative = x.is_negative();
+        x.conditional_negate(x_is_negative);
+        out.conditional_assign(&x, !done);
+
+        (ret, out)
+    }
+}
+
 // ------------------------------------------------------------------------
 // Doubling
 // ------------------------------------------------------------------------
@@ -370,6 +433,7 @@ impl ProjectivePoint {
         }
     }
 }
+
 
 // ------------------------------------------------------------------------
 // Addition and Subtraction
@@ -492,6 +556,15 @@ impl<'a> Neg for &'a AffineNielsPoint {
             y_plus_x:   self.y_minus_x,
             y_minus_x:  self.y_plus_x,
             xy2d:       -(&self.xy2d)
+        }
+    }
+}
+
+impl JacobiPoint {
+    pub fn dual(&self) -> JacobiPoint {
+        JacobiPoint {
+            S: -(&self.S),
+            T: -(&self.T),
         }
     }
 }
