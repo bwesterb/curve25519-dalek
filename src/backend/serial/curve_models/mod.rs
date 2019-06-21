@@ -369,23 +369,16 @@ impl JacobiPoint {
     pub(crate) fn elligator_inv(&self) -> (Choice, FieldElement) {
         let mut out = FieldElement::zero();
 
-        // sqrt(i * d).  XXX add constant
-        let sqrt_id = &(&constants::SQRT_M1 * &constants::EDWARDS_D).sqrt();
-
-        // (d+1)/(d-1).  XXX add constant
-        let dp1_over_dm1 = &(&constants::EDWARDS_D - &FieldElement::one()).invert()
-                                * &(&constants::EDWARDS_D + &FieldElement::one());
-
         // Special case: s = 0.  If s is zero, either t = 1 or t = -1.
         // If t=1, then sqrt(i*d) is the preimage.  Otherwise it's 0.
         let s_is_zero = self.S.is_zero();
         let t_equals_one = self.T.ct_eq(&FieldElement::one());
-        out.conditional_assign(&sqrt_id, t_equals_one);
+        out.conditional_assign(&constants::SQRT_ID, t_equals_one);
         let mut ret = s_is_zero;
         let mut done = s_is_zero;
         
         // a := (t+1) (d+1)/(d-1)
-        let a = &(&self.T + &FieldElement::one()) * &dp1_over_dm1;
+        let a = &(&self.T + &FieldElement::one()) * &constants::DP1_OVER_DM1;
         let a2 = a.square();
 
         // y := 1/sqrt(i (s^4 - a^2)).

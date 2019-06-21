@@ -660,23 +660,14 @@ impl RistrettoPoint {
         let s0 = &s_over_x * &self.0.X;
         let s1 = &(-(&sp_over_xp)) * &self.0.X;
 
-        // -2/sqrt(-d-1) XXX make constant
-        let double_invsqrt_a_minus_d = -&(&constants::INVSQRT_A_MINUS_D + &constants::INVSQRT_A_MINUS_D);
-
-        // 1/sqrt(1+d) XXX make constant
-        let (_, invsqrt_one_plus_d) = &(&constants::EDWARDS_D + &FieldElement::one()).invsqrt();
-
-        // -2i/sqrt(-d-1) XXX make constant
-        let doublei_invsqrt_a_minus_d = &double_invsqrt_a_minus_d * &constants::SQRT_M1;
-
-        // t_0 := 2/sqrt(-d-1) * Z * sOverX
-        // t_1 := 2/sqrt(-d-1) * Z * spOverXp
-        let tmp = &double_invsqrt_a_minus_d * &self.0.Z;
+        // t_0 := -2/sqrt(-d-1) * Z * sOverX
+        // t_1 := -2/sqrt(-d-1) * Z * spOverXp
+        let tmp = &constants::MDOUBLE_INVSQRT_A_MINUS_D * &self.0.Z;
         let mut t0 = &tmp * &s_over_x;
         let mut t1 = &tmp * &sp_over_xp;
 
         // den := 1/sqrt(1+d) (Y^2 - Z^2) gamma
-        let den = &(&(-(&z2_min_y2)) * &invsqrt_one_plus_d) * &gamma;
+        let den = &(&(-(&z2_min_y2)) * &constants::INVSQRT_ONE_PLUS_D) * &gamma;
 
         // Same as before but with the substitution (X, Y, Z) = (Y, X, i*Z)
         let iz = &constants::SQRT_M1 * &self.0.Z;  // iZ
@@ -689,22 +680,22 @@ impl RistrettoPoint {
         let mut s2 = &s_over_y * &self.0.Y;
         let mut s3 = &(-(&sp_over_yp)) * &self.0.Y;
 
-        // t_2 := 2/sqrt(-d-1) * i*Z * sOverY
-        // t_3 := 2/sqrt(-d-1) * i*Z * spOverYp
-        let tmp = &double_invsqrt_a_minus_d * &iz;
+        // t_2 := -2/sqrt(-d-1) * i*Z * sOverY
+        // t_3 := -2/sqrt(-d-1) * i*Z * spOverYp
+        let tmp = &constants::MDOUBLE_INVSQRT_A_MINUS_D * &iz;
         let mut t2 = &tmp * &s_over_y;
         let mut t3 = &tmp * &sp_over_yp;
 
         // Special case: X=0 or Y=0.  Then return
         //
-        //  (0,1)   (1,2i/sqrt(-d-1)   (-1,2i/sqrt(-d-1))
+        //  (0,1)   (1,-2i/sqrt(-d-1)   (-1,-2i/sqrt(-d-1))
         //
         // Note that if X=0 or Y=0, then s_i = t_i = 0.
         let x_or_y_is_zero = self.0.X.is_zero() | self.0.Y.is_zero();
         t0.conditional_assign(&FieldElement::one(), x_or_y_is_zero);
         t1.conditional_assign(&FieldElement::one(), x_or_y_is_zero);
-        t2.conditional_assign(&doublei_invsqrt_a_minus_d, x_or_y_is_zero);
-        t3.conditional_assign(&doublei_invsqrt_a_minus_d, x_or_y_is_zero);
+        t2.conditional_assign(&constants::MIDOUBLE_INVSQRT_A_MINUS_D, x_or_y_is_zero);
+        t3.conditional_assign(&constants::MIDOUBLE_INVSQRT_A_MINUS_D, x_or_y_is_zero);
         s2.conditional_assign(&FieldElement::one(), x_or_y_is_zero);
         s3.conditional_assign(&(-(&FieldElement::one())), x_or_y_is_zero);
 
