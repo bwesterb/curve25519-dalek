@@ -663,8 +663,8 @@ impl RistrettoPoint {
         // -2/sqrt(-d-1) XXX make constant
         let double_invsqrt_a_minus_d = -&(&constants::INVSQRT_A_MINUS_D + &constants::INVSQRT_A_MINUS_D);
 
-        // -1/sqrt(1+d) XXX make constant
-        let (_, invsqrt_one_plus_d) = &(&constants::EDWARDS_D + &FieldElement::one()).invsqrt_hom();
+        // 1/sqrt(1+d) XXX make constant
+        let (_, invsqrt_one_plus_d) = &(&constants::EDWARDS_D + &FieldElement::one()).invsqrt();
 
         // -2i/sqrt(-d-1) XXX make constant
         let doublei_invsqrt_a_minus_d = &double_invsqrt_a_minus_d * &constants::SQRT_M1;
