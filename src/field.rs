@@ -275,11 +275,8 @@ impl FieldElement {
     ///
     /// Assumes self is a square.
     pub fn sqrt(&self) -> FieldElement {
-        let (_, invsqrt) = self.invsqrt();
-        let mut some_root = &invsqrt * &self;
-        let is_negative = some_root.is_negative();
-        some_root.conditional_negate(is_negative);
-        some_root
+        let (_, fe) = FieldElement::sqrt_ratio_i(self, &FieldElement::one());
+        fe
     }
 }
 
