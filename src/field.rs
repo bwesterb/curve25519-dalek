@@ -270,6 +270,14 @@ impl FieldElement {
     pub fn invsqrt(&self) -> (Choice, FieldElement) {
         FieldElement::sqrt_ratio_i(&FieldElement::one(), self)
     }
+
+    /// Computes the positive square root of self in constant time
+    ///
+    /// Assumes self is a square.
+    pub fn sqrt(&self) -> FieldElement {
+        let (_, fe) = FieldElement::sqrt_ratio_i(self, &FieldElement::one());
+        fe
+    }
 }
 
 #[cfg(test)]
