@@ -652,7 +652,7 @@ impl RistrettoPoint {
         // gamma := 1/sqrt( Y^4 X^2 (Z^2 - Y^2) )
         let (_, gamma) = (&(&y4 * &x2) * &z2_min_y2).invsqrt();
 
-	    let den = &gamma * &y2;
+        let den = &gamma * &y2;
         
         let s_over_x = &den * &z_min_y;
         let sp_over_xp = &den * &z_pl_y;
@@ -1495,11 +1495,23 @@ mod test {
     fn test_elligator_inv() {
         let mut rng = rand::thread_rng();
 
-        for _ in 0..100 {
+        for i in 0..100 {
             let mut fe_bytes = [0u8; 32];
-            rng.fill_bytes(&mut fe_bytes);
-            fe_bytes[0] &= 254;
-            fe_bytes[31] &= 127;
+
+            if i == 0 {
+                // Test for first corner-case: fe = 0
+                fe_bytes = [0u8; 32];
+            } else if i == 1 {
+                // Test for second corner-case: fe = +sqrt(i*d)
+                fe_bytes = [168, 27, 92, 74, 203, 42, 48, 117, 170, 109, 234,
+                            14, 45, 169, 188, 205, 21, 110, 235, 115, 153, 84,
+                            52, 117, 151, 235, 123, 244, 88, 85, 179, 5];
+            } else {
+                // For the rest, just generate a random field element to test.
+                rng.fill_bytes(&mut fe_bytes);
+            }
+            fe_bytes[0] &= 254;     // positive
+            fe_bytes[31] &= 127;    // < 2^255-19
             let fe = FieldElement::from_bytes(&fe_bytes);
 
             let pt = RistrettoPoint::elligator_ristretto_flavor(&fe);
