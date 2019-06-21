@@ -650,7 +650,7 @@ impl RistrettoPoint {
         let z2_min_y2 = &z2 - &y2;              // Z^2 - Y^2
 
         // gamma := 1/sqrt( Y^4 X^2 (Z^2 - Y^2) )
-        let (_, gamma) = (&(&y4 * &x2) * &z2_min_y2).invsqrt_hom();
+        let (_, gamma) = (&(&y4 * &x2) * &z2_min_y2).invsqrt();
 
 	    let den = &gamma * &y2;
         
