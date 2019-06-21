@@ -391,12 +391,12 @@ impl JacobiPoint {
         // y := 1/sqrt(i (s^4 - a^2)).
         let s2 = self.S.square();
         let s4 = s2.square();
-        let invSqiY = &s4 - &a2;
+        let invSqY = &(&s4 - &a2) * &constants::SQRT_M1;
 
         // There is no preimage if the square root of i*(s^4-a^2) does not exist.
-        let (sq, y) = invSqiY.invsqrt_hom();
-        ret |= !sq;
-        done |= sq;
+        let (sq, y) = invSqY.invsqrt();
+        ret |= sq;
+        done |= !sq;
 
         // x := (a + sign(s)*s^2) y
         let mut pms2 = s2;
